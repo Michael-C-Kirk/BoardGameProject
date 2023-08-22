@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+import multiprocessing
 
 class WebScraper:
     def __init__(self, url: str) -> None:
@@ -37,3 +38,5 @@ class WebScraper:
     def get_usernames(self) -> list[tuple]:
         self.__collect_usernames()
         return self.usernames
+    
+    "test"
