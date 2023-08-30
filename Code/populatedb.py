@@ -2,6 +2,9 @@ from webscraper import WebScraper
 from getpass import getpass
 from mysql.connector import connect, Error
 
+class DatabaseHelper:
+    pass
+
 if __name__ == "__main__":
     w = WebScraper("https://boardgamegeek.com/boardgame/316554/dune-imperium")
     username_list = w.get_usernames()
