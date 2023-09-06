@@ -1,5 +1,4 @@
 from webscraper import WebScraper
-from getpass import getpass
 from mysql.connector import connect, Error, IntegrityError
 from boardgamegeek import BGGClient, BGGApiRetryError, BGGApiError, BGGItemNotFoundError
 import configparser

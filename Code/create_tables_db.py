@@ -1,9 +1,13 @@
 from mysql.connector import connect, Error
-from getpass import getpass
+import configparser
+
+config = configparser.ConfigParser()
+config.read("..\BoardGameProjectAdditonalFiles\config.ini")
+username, password = config['credentials']['username'], config['credentials']['password']
 
 def create_table_db(query):
     try:
-        with connect(host="localhost",user=input("Enter username: "),password=getpass("Enter password: "),database="boardgame_info",) as connection:
+        with connect(host="localhost",user=username,password=password,database="boardgame_info",) as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 connection.commit()
