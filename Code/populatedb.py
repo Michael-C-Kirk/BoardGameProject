@@ -2,6 +2,7 @@ from webscraper import WebScraper
 from getpass import getpass
 from mysql.connector import connect, Error, IntegrityError
 from boardgamegeek import BGGClient, BGGApiRetryError, BGGApiError, BGGItemNotFoundError
+import configparser
 
 class DatabaseHelper:
     def __init__(self, connection) -> None:
@@ -100,6 +101,14 @@ class DatabaseHelper:
     
 
 if __name__ == "__main__":
+    """
+    config is used to store/retrieve Database username and password
+    helpful for keeping sensitive information away from github 
+    """
+    config = configparser.ConfigParser()
+    config.read("..\BoardGameProjectAdditonalFiles\config.ini")
+    username, password = config['credentials']['username'], config['credentials']['password']
+
     '''
     w = WebScraper("https://boardgamegeek.com/boardgame/316554/dune-imperium")
     username_list = w.get_usernames()
@@ -120,7 +129,7 @@ if __name__ == "__main__":
     except Error as e:
         print(e)
     '''
-    with connect(host = "localhost", user = input("Enter username: "), password = getpass("Enter password: "), database = "boardgame_info",) as connection:
+    with connect(host = "localhost", user = username, password = password, database = "boardgame_info",) as connection:
 
         d = DatabaseHelper(connection)
         d.populate_bg_ratings_tables()
