@@ -1,15 +1,22 @@
 from webscraper import WebScraper
 from getpass import getpass
 from mysql.connector import connect, Error, IntegrityError
-from boardgamegeek import BGGClient, BGGApiRetryError
+from boardgamegeek import BGGClient, BGGApiRetryError, BGGApiError, BGGItemNotFoundError
 
 class DatabaseHelper:
     def __init__(self, connection) -> None:
         self.connection = connection
 
-    def __get_users_plus_ids(self, num_rows = 100) -> list[tuple]:
+    def __get_users_plus_ids(self) -> list[tuple]:
+        """
+        Returns a list of (user_id, username) from database
+        query only looks for users that have no recorded bg ratings
+        """
         ids_and_usernames = []
-        select_users_query = "SELECT * FROM users LIMIT {rows}".format(rows = num_rows)
+        select_users_query = """SELECT *
+                                FROM boardgame_info.users
+                                WHERE boardgame_info.users.id NOT IN (SELECT boardgame_info.ratings.user_id FROM boardgame_info.ratings);
+                            """
 
         with self.connection.cursor() as cursor:
             cursor.execute(select_users_query)
@@ -54,7 +61,7 @@ class DatabaseHelper:
             return cursor.fetchall()[0][0]
 
     def populate_bg_ratings_tables(self):
-        ids_and_usernames = self.__get_users_plus_ids(40034)
+        ids_and_usernames = self.__get_users_plus_ids()
         bgg = BGGClient()
 
         for user_id, username in ids_and_usernames:
@@ -78,8 +85,15 @@ class DatabaseHelper:
                         pass
 
             except BGGApiRetryError:
-                print("ERROR: BGGApiRetryError meaning failed to retrieve users rated collection")
+                print("ERROR: BGGApiRetryError meaning failed to retrieve users rated collection for username: {u}".format(u = username))
                 continue
+
+            except BGGApiError:
+                print("ERROR: BGGApiError meaning a connection could not be made to the api for username: {u}".format(u = username))
+                continue
+
+            except BGGItemNotFoundError:
+                print("ERROR: BGGItemNotFoundError for username: {u}".format(u = username))
 
 
 
@@ -106,7 +120,7 @@ if __name__ == "__main__":
     except Error as e:
         print(e)
     '''
-    with connect(host = "localhost", user = "root", password = "HC>tG[=6qo~s|yE", database = "boardgame_info",) as connection:
+    with connect(host = "localhost", user = input("Enter username: "), password = getpass("Enter password: "), database = "boardgame_info",) as connection:
 
         d = DatabaseHelper(connection)
         d.populate_bg_ratings_tables()
