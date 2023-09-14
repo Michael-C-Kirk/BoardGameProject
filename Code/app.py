@@ -10,6 +10,9 @@ def get_bg_ids(bg_query_lst, connection):
         bg_name = bg_name.replace('"', '\\"')
         bg_names_tuple += (bg_name,)
 
+    if len(bg_query_lst) == 1:
+        bg_names_tuple = str(bg_names_tuple)[0:-2] + ")"
+
     query = """
         SELECT board_games.id 
         FROM boardgame_info.board_games 
@@ -28,6 +31,10 @@ def get_bg_ids(bg_query_lst, connection):
 
 def get_user_ids_have_rated(bg_ids, connection):
     user_ids = ()
+
+    if len(bg_ids) == 1:
+        bg_ids = str(bg_ids)[0:-2] + ")"
+
     query = """
         SELECT C.user_id
         FROM (
@@ -39,9 +46,7 @@ def get_user_ids_have_rated(bg_ids, connection):
             GROUP BY user_id
         ) C
         WHERE C.RatingCount = {num_bgs};
-    """.format(
-        bg_ids=bg_ids, num_bgs=len(bg_ids)
-    )
+    """.format(bg_ids=bg_ids, num_bgs=len(bg_ids) if type(bg_ids) == tuple else 1)
 
     with connection.cursor() as cursor:
         cursor.execute(query)
@@ -56,6 +61,9 @@ def get_user_id_rated_above(bg_ids, user_id, rating, connection):
     This query is reponsible for returning a user id if the lowest rated boardgame is >= rating
     Returns list of one tuple which contains a single user_id
     """
+    if len(bg_ids) == 1:
+        bg_ids = str(bg_ids)[0:-2] + ")"
+
     query = """
             SELECT user_id
             FROM boardgame_info.ratings
@@ -63,9 +71,7 @@ def get_user_id_rated_above(bg_ids, user_id, rating, connection):
                                     FROM boardgame_info.ratings
                                     WHERE user_id = {id} AND board_game_id IN {bg_ids}) >= {rating})
             LIMIT 1;
-    """.format(
-        id=user_id, bg_ids=bg_ids, rating=rating
-    )
+    """.format(id=user_id, bg_ids=bg_ids, rating=rating)
 
     with connection.cursor() as cursor:
         cursor.execute(query)
@@ -73,15 +79,16 @@ def get_user_id_rated_above(bg_ids, user_id, rating, connection):
 
 
 def get_all_bg_from_user(user_id, rating, bg_ids, connection):
+    if len(bg_ids) == 1:
+        bg_ids = str(bg_ids)[0:-2] + ")"
+
     query = """
         SELECT name, rating
         FROM boardgame_info.ratings
         INNER JOIN boardgame_info.board_games
         ON ratings.board_game_id = board_games.id
         WHERE user_id = {user_id} AND rating >= {rating} AND board_game_id NOT IN {bg_ids};
-    """.format(
-        user_id=user_id, rating=rating, bg_ids=bg_ids
-    )
+    """.format(user_id=user_id, rating=rating, bg_ids=bg_ids)
 
     with connection.cursor() as cursor:
         cursor.execute(query)
@@ -113,4 +120,4 @@ if __name__ == "__main__":
     username, password = (config["credentials"]["username"], config["credentials"]["password"])
 
     with connect(host="localhost", user=username, password=password, database="boardgame_info") as connection:
-        gather_bg_stats(["Nemsis", "Root", "Inis", "Bloodrage", "Kemet: Blood and Sand"], 9, connection)
+        gather_bg_stats(["Smash Up"], 8, connection)
