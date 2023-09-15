@@ -251,4 +251,4 @@ if __name__ == "__main__":
 
     with connect(host = "localhost", user = username, password = password, database = "boardgame_info",) as connection:
         db_app = DataBaseAppFunctionality(connection)
-        db_app.gather_bg_stats(["Smash Up", "Nemsis", "Mantis Falls"], 8)
+        db_app.gather_bg_stats(["Secret Hitler", "Mantis Falls"], 9)
