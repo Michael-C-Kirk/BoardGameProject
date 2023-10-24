@@ -209,6 +209,29 @@ class DataBaseAppFunctionality:
 
         print(sorted(bg_stats_dict.items(), key=lambda item: item[1]))
 
+    def get_all_bgs(self):
+        """
+        Returns a list of all bgs in database sorted descending by number of user ratings per bg
+        """
+        bg_list = []
+        query = """
+        SELECT name 
+        FROM (
+	        SELECT name, Count(board_game_id) AS NumVotes
+            FROM ratings
+            INNER JOIN board_games ON ratings.board_game_id = board_games.id
+            GROUP BY board_game_id
+        ) C
+        ORDER BY NumVotes DESC;
+        """
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(query)
+            for bg_name in cursor.fetchall():
+                bg_list.append(bg_name[0])
+
+        return bg_list
+
 
     
 

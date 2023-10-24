@@ -1,5 +1,5 @@
 import configparser
-from flask import Flask, render_template, g
+from flask import Flask, request, render_template, g
 from db import DataBaseAppFunctionality
 from flaskext.mysql import MySQL
 
@@ -15,18 +15,15 @@ app.config['MYSQL_DATABASE_DB'] = 'boardgame_info'
 app.config['MYSQL_DATABASE_HOST'] = host
 mysql.init_app(app)
 
-@app.route('/')
+@app.route('/', methods=["POST","GET"])
 def home():
-    conn = mysql.connect()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT board_games.id 
-        FROM boardgame_info.board_games 
-        WHERE board_games.name = "Nemesis";
-        """)
-    rv = cur.fetchall()
-    return str(rv)
-    #return render_template('index.html')
+    if request.method == "GET":
+        conn = mysql.connect()
+        db = DataBaseAppFunctionality(conn)
+        bg_list = db.get_all_bgs()
+        print(bg_list[0:100])
+
+        return render_template('index.html', bg_list = bg_list)
 
 if __name__ == "__main__":
 

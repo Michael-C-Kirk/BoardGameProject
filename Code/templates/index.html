@@ -2,13 +2,39 @@
 <html lang="en">
 
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
     <meta charset="UTF-8">
     <title>BoardGameApp</title>
 </head>
 
 <body>
-    <h1>Hello World!</h1>
-    <h2>Welcome to FlaskApp!</h2>
+    <input type="text" id="bg_input" list="bg_list">
+    <datalist id="bg_list">
+        {% for bg in bg_list %}
+        <option> {{bg}} </option>
+        {% endfor %}
+    </datalist>
+    <button id="add_bg_btn" onclick="addBgtoList()">Add Board Game</button>
+
+    <ul id="list">
+    </ul>
+
+    <script>
+        function addBgtoList() {
+            var bg_name = document.getElementById("bg_input").value;
+            var ul = document.getElementById("list");
+            var li = document.createElement("li");
+            li.appendChild(document.createTextNode(bg_name));
+            ul.appendChild(li);
+
+            var deleteButton = document.createElement("button");
+            deleteButton.setAttribute('id', 'deleteButton')
+            li.appendChild(deleteButton);
+            deleteButton.onclick = function () {
+                this.parentElement.style.display = "none";
+            }
+        }
+    </script>
 </body>
 
 </html>
