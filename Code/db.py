@@ -215,14 +215,7 @@ class DataBaseAppFunctionality:
         """
         bg_list = []
         query = """
-        SELECT name 
-        FROM (
-	        SELECT name, Count(board_game_id) AS NumVotes
-            FROM ratings
-            INNER JOIN board_games ON ratings.board_game_id = board_games.id
-            GROUP BY board_game_id
-        ) C
-        ORDER BY NumVotes DESC;
+        CALL get_all_bgs()
         """
 
         with self.connection.cursor() as cursor:

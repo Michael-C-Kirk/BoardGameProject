@@ -20,8 +20,7 @@ def home():
     if request.method == "GET":
         conn = mysql.connect()
         db = DataBaseAppFunctionality(conn)
-        bg_list = db.get_all_bgs()
-        print(bg_list[0:100])
+        bg_list = db.get_all_bgs() 
 
         return render_template('index.html', bg_list = bg_list)
 

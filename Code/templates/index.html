@@ -8,20 +8,24 @@
 </head>
 
 <body>
-    <input type="text" id="bg_input" list="bg_list">
-    <datalist id="bg_list">
-        {% for bg in bg_list %}
-        <option> {{bg}} </option>
-        {% endfor %}
-    </datalist>
-    <button id="add_bg_btn" onclick="addBgtoList()">Add Board Game</button>
+    <div id="container">
+        <input type="text" id="bgInput" list="bg_list">
+        <datalist id="bg_list">
+            {% for bg in bg_list %}
+            <option> {{bg}} </option>
+            {% endfor %}
+        </datalist>
+        <button id="addBgButton" onclick="addBgtoList()">Add Board Game</button>
 
-    <ul id="list">
-    </ul>
+        <ul id="list">
+        </ul>
+
+        <button id="submitButton" onclick="submitBGs()">Submit</button>
+    </div>
 
     <script>
         function addBgtoList() {
-            var bg_name = document.getElementById("bg_input").value;
+            var bg_name = document.getElementById("bgInput").value;
             var ul = document.getElementById("list");
             var li = document.createElement("li");
             li.appendChild(document.createTextNode(bg_name));
@@ -33,6 +37,13 @@
             deleteButton.onclick = function () {
                 this.parentElement.style.display = "none";
             }
+        }
+    </script>
+
+    <script>
+        function submitBGs() {
+            var bg_l = document.getElementById("list").getElementsByTagName("li")
+            alert(bg_l)
         }
     </script>
 </body>
