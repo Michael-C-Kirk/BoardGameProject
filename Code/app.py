@@ -23,8 +23,6 @@ db = DataBaseAppFunctionality()
 @app.route('/', methods=["POST","GET"])
 def home():
     if request.method == "GET":
-        #conn = mysql.connect()
-        #db = DataBaseAppFunctionality(conn)
         bg_list = db.get_all_bgs() 
         return render_template('index.html', bg_list = bg_list)
 
@@ -34,19 +32,17 @@ def resultPage():
     if request.method == "POST":
         jsdata = request.json
         print(jsdata)
-        #conn = mysql.connect()
-        #db = DataBaseAppFunctionality(conn)
         res = db.gather_bg_stats(jsdata, 9)
-        #jsdata = res
         print(res)
         db.create_temp_table("temp_table", res)
-        print("--------------------wow------------------------------")
         return jsonify({'html':render_template('results.html', d=res)})
 
 @app.route('/test', methods=["GET", "POST"])
 def test():
     if request.method == "GET":
-        return render_template('results.html')
+        bg_info = db.get_temp_table_vals("temp_table")
+        print(bg_info)
+        return render_template('results.html', d=bg_info)
     
 
 if __name__ == "__main__":

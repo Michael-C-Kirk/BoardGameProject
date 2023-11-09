@@ -293,6 +293,18 @@ class DataBaseAppFunctionality:
             cursor.executemany(add_query, data)
             DataBaseAppFunctionality.cnx.commit()
 
+    def get_temp_table_vals(self, table_name: str) -> list:
+        get_query = """
+                    SELECT * 
+                    FROM {table_name}
+                    """.format(table_name=table_name)
+        
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
+
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
+            cursor.execute(get_query)
+            return cursor.fetchall()
 
     
 
