@@ -5,6 +5,50 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
     <meta charset="UTF-8">
     <title>BoardGameApp</title>
+
+    <script>
+        function addBgtoList() {
+            var bg_name = document.getElementById("bgInput").value;
+            var ul = document.getElementById("list");
+            var li = document.createElement("li");
+            li.appendChild(document.createTextNode(bg_name));
+            ul.appendChild(li);
+
+            var deleteButton = document.createElement("button");
+            deleteButton.setAttribute('id', 'deleteButton')
+            li.appendChild(deleteButton);
+            deleteButton.onclick = function () {
+                this.parentElement.remove();
+            }
+        }
+    </script>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script>
+        function submitBGs() {
+            var bg_l = document.getElementById("list").getElementsByTagName("li");
+            const bgs = []
+            for (let i = 0; i < bg_l.length; ++i) {
+                bg_name = bg_l.item(i).textContent
+                console.log(bg_name)
+                bgs.push(bg_name);
+            }
+            console.log(JSON.stringify(bgs));
+            //$.post("/results", { javascript_data: JSON.stringify(bgs) });
+            $.ajax({
+                url: "{{ url_for('resultPage') }}",
+                type: "POST",
+                dataType: 'json',
+                contentType: 'application/json',
+                accepts: 'application/json',
+                data: JSON.stringify(bgs),
+                success: function (data) {
+                    console.log("processing data")
+                    //window.location = '/test'
+                }
+            });
+        }
+    </script>
 </head>
 
 <body>
@@ -22,30 +66,6 @@
 
         <button id="submitButton" onclick="submitBGs()">Submit</button>
     </div>
-
-    <script>
-        function addBgtoList() {
-            var bg_name = document.getElementById("bgInput").value;
-            var ul = document.getElementById("list");
-            var li = document.createElement("li");
-            li.appendChild(document.createTextNode(bg_name));
-            ul.appendChild(li);
-
-            var deleteButton = document.createElement("button");
-            deleteButton.setAttribute('id', 'deleteButton')
-            li.appendChild(deleteButton);
-            deleteButton.onclick = function () {
-                this.parentElement.style.display = "none";
-            }
-        }
-    </script>
-
-    <script>
-        function submitBGs() {
-            var bg_l = document.getElementById("list").getElementsByTagName("li")
-            alert(bg_l)
-        }
-    </script>
 </body>
 
 </html>

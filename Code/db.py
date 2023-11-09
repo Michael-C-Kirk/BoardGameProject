@@ -3,6 +3,12 @@ from mysql.connector import connect, Error, IntegrityError
 from boardgamegeek import BGGClient, BGGApiRetryError, BGGApiError, BGGItemNotFoundError
 import configparser
 from collections import defaultdict
+import configparser
+
+config = configparser.ConfigParser()
+config.read("..\BoardGameProjectAdditonalFiles\config.ini")
+username, psw, hst = (config["credentials"]["username"], config["credentials"]["password"], config["credentials"]["host"])
+
 
 class DatabaseHelper:
     def __init__(self, connection) -> None:
@@ -36,7 +42,7 @@ class DatabaseHelper:
 
         with self.connection.cursor() as cursor:
             cursor.executemany(query, bg_name_list)
-            connection.commit()
+            self.connection.commit()
 
     def _insert_rating(self, rating_info_list):
         query = """
@@ -47,7 +53,7 @@ class DatabaseHelper:
 
         with self.connection.cursor() as cursor:
             cursor.executemany(query, rating_info_list)
-            connection.commit()
+            self.connection.commit()
         
     def _get_bg_id(self, bg_name):
         bg_name = bg_name.replace("\"", "\\\"")
@@ -97,16 +103,23 @@ class DatabaseHelper:
                 print("ERROR: BGGItemNotFoundError for username: {u}".format(u = username))
 
 class DataBaseAppFunctionality:
-    def __init__(self, connection) -> None:
-        self.connection = connection
+
+    cnx = None
+
+    def __init__(self) -> None:
+        if DataBaseAppFunctionality.cnx is None:
+            try:
+                DataBaseAppFunctionality.cnx = connect(user=username, password=psw, host=hst, database="boardgame_info", autocommit = True)
+            except Exception as error:
+                print("Error: Database connection not established {}".format(error))
+        else:
+            DataBaseAppFunctionality.cnx.reconnect()
 
     def _get_bg_ids(self, bg_query_lst):
         bg_ids, bg_names_tuple = (), ()
-
         for bg_name in bg_query_lst:
             bg_name = bg_name.replace('"', '\\"')
             bg_names_tuple += (bg_name,)
-
         if len(bg_query_lst) == 1:
             bg_names_tuple = str(bg_names_tuple)[0:-2] + ")"
 
@@ -117,8 +130,10 @@ class DataBaseAppFunctionality:
             """.format(
             bg_query_lst=str(bg_names_tuple)
         )
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
 
-        with self.connection.cursor() as cursor:
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
             cursor.execute(query)
             for bg_id in cursor.fetchall():
                 bg_ids += (bg_id[0],)
@@ -127,6 +142,9 @@ class DataBaseAppFunctionality:
 
     def _get_user_ids_have_rated(self, bg_ids):
         user_ids = ()
+
+        if bg_ids == ():
+            return None
 
         if len(bg_ids) == 1:
             bg_ids = str(bg_ids)[0:-2] + ")"
@@ -144,7 +162,10 @@ class DataBaseAppFunctionality:
             WHERE C.RatingCount = {num_bgs};
         """.format(bg_ids=bg_ids, num_bgs=len(bg_ids) if type(bg_ids) == tuple else 1)
 
-        with self.connection.cursor() as cursor:
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
+
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
             cursor.execute(query)
             for user_id in cursor.fetchall():
                 user_ids += user_id
@@ -169,7 +190,10 @@ class DataBaseAppFunctionality:
                 LIMIT 1;
         """.format(id=user_id, bg_ids=bg_ids, rating=rating)
 
-        with self.connection.cursor() as cursor:
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
+
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
             cursor.execute(query)
             return cursor.fetchall()
 
@@ -186,7 +210,10 @@ class DataBaseAppFunctionality:
             WHERE user_id = {user_id} AND rating >= {rating} AND board_game_id NOT IN {bg_ids};
         """.format(user_id=user_id, rating=rating, bg_ids=bg_ids)
 
-        with self.connection.cursor() as cursor:
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
+
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
             cursor.execute(query)
             return cursor.fetchall()
 
@@ -197,17 +224,24 @@ class DataBaseAppFunctionality:
         bg_ids = self._get_bg_ids(bg_query_lst)
         user_ids = self._get_user_ids_have_rated(bg_ids)
 
-        for id in user_ids:
-            user_id = self._get_user_id_rated_above(bg_ids, id, rating)
-            if user_id != None and user_id != []:
-                final_ids += user_id[0]
+        if user_ids != None:
+            for id in user_ids:
+                user_id = self._get_user_id_rated_above(bg_ids, id, rating)
+                if user_id != None and user_id not in [(), []]:
+                    final_ids += user_id[0]
 
-        for id in final_ids:
-            bg_stats = self._get_all_bg_from_user(id, rating, bg_ids)
-            for bg_name, r in bg_stats:
-                bg_stats_dict[bg_name] += 1
+            c = 1
+            for id in final_ids:
+                print("working on final id number {c} out of {total}".format(c=c, total = len(final_ids)))
+                bg_stats = self._get_all_bg_from_user(id, rating, bg_ids)
+                for bg_name, r in bg_stats:
+                    bg_stats_dict[bg_name] += 1
+                c += 1
 
-        print(sorted(bg_stats_dict.items(), key=lambda item: item[1]))
+            return (sorted(bg_stats_dict.items(), key=lambda item: item[1]))
+        
+        else:
+            return None
 
     def get_all_bgs(self):
         """
@@ -218,12 +252,46 @@ class DataBaseAppFunctionality:
         CALL get_all_bgs()
         """
 
-        with self.connection.cursor() as cursor:
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
+
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
             cursor.execute(query)
             for bg_name in cursor.fetchall():
                 bg_list.append(bg_name[0])
 
         return bg_list
+
+    def create_temp_table(self, table_name: str, data: list) -> None:
+        create_query = """
+                        create temporary table {table_name}
+                            (id int auto_increment Primary key,
+                            bg_name varchar(500),
+                            num_ratings int)
+                       """.format(table_name = table_name)
+
+        add_query = """
+                    INSERT INTO {table_name}
+                    (bg_name, num_ratings)
+                    VALUES(%s, %s)
+                    """.format(table_name = table_name)
+      
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
+
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
+            #only meant to drop temp table if one exists
+            cursor.execute("CALL check_table_exists('{table_name}');".format(table_name=table_name))
+            cursor.execute("SELECT @table_exists;")
+            is_temp_table = cursor.fetchone()
+
+            if is_temp_table[0]:
+                cursor.execute("DROP TEMPORARY TABLE IF EXISTS {table_name};".format(table_name=table_name))
+                
+
+            cursor.execute(create_query)
+            cursor.executemany(add_query, data)
+            DataBaseAppFunctionality.cnx.commit()
 
 
     
@@ -265,6 +333,8 @@ if __name__ == "__main__":
         d.populate_bg_ratings_tables()
     '''
 
+    '''
     with connect(host = "localhost", user = username, password = password, database = "boardgame_info",) as connection:
         db_app = DataBaseAppFunctionality(connection)
         db_app.gather_bg_stats(["Secret Hitler", "Mantis Falls"], 9)
+    '''
