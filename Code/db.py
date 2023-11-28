@@ -3,12 +3,10 @@ from mysql.connector import connect, Error, IntegrityError
 from boardgamegeek import BGGClient, BGGApiRetryError, BGGApiError, BGGItemNotFoundError
 import configparser
 from collections import defaultdict
-import configparser
 
 config = configparser.ConfigParser()
 config.read("..\BoardGameProjectAdditonalFiles\config.ini")
 username, psw, hst = (config["credentials"]["username"], config["credentials"]["password"], config["credentials"]["host"])
-
 
 class DatabaseHelper:
     def __init__(self, connection) -> None:
@@ -103,7 +101,6 @@ class DatabaseHelper:
                 print("ERROR: BGGItemNotFoundError for username: {u}".format(u = username))
 
 class DataBaseAppFunctionality:
-
     cnx = None
 
     def __init__(self) -> None:
@@ -172,7 +169,6 @@ class DataBaseAppFunctionality:
 
         return user_ids
 
-
     def _get_user_id_rated_above(self, bg_ids, user_id, rating):
         """
         This query is reponsible for returning a user id if the lowest rated boardgame is >= rating
@@ -197,7 +193,6 @@ class DataBaseAppFunctionality:
             cursor.execute(query)
             return cursor.fetchall()
 
-
     def _get_all_bg_from_user(self, user_id, rating, bg_ids):
         if len(bg_ids) == 1:
             bg_ids = str(bg_ids)[0:-2] + ")"
@@ -216,7 +211,6 @@ class DataBaseAppFunctionality:
         with DataBaseAppFunctionality.cnx.cursor() as cursor:
             cursor.execute(query)
             return cursor.fetchall()
-
 
     def gather_bg_stats(self, bg_query_lst, rating):
         bg_stats_dict = defaultdict(int)
@@ -297,6 +291,7 @@ class DataBaseAppFunctionality:
         get_query = """
                     SELECT * 
                     FROM {table_name}
+                    ORDER BY num_ratings DESC
                     """.format(table_name=table_name)
         
         if not DataBaseAppFunctionality.cnx.is_connected():
@@ -306,16 +301,26 @@ class DataBaseAppFunctionality:
             cursor.execute(get_query)
             return cursor.fetchall()
 
-    
+    def auto_complete_search(self, query: str):
+        auto_complete_query = """
+                SELECT name FROM board_games WHERE name LIKE '{query}%' LIMIT 30; 
+                """.format(query=query)
+
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
+
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
+            cursor.execute(auto_complete_query)
+            return cursor.fetchall()
 
 if __name__ == "__main__":
     """
     config is used to store/retrieve Database username and password
     helpful for keeping sensitive information away from github 
     """
-    config = configparser.ConfigParser()
-    config.read("..\BoardGameProjectAdditonalFiles\config.ini")
-    username, password = config['credentials']['username'], config['credentials']['password']
+    #config = configparser.ConfigParser()
+    #config.read("..\BoardGameProjectAdditonalFiles\config.ini")
+    #username, password = config['credentials']['username'], config['credentials']['password']
 
     '''
     w = WebScraper("https://boardgamegeek.com/boardgame/167698/magic-gathering-arena-planeswalkers")
@@ -338,15 +343,20 @@ if __name__ == "__main__":
         print(e)
     '''
 
-    '''
-    with connect(host = "localhost", user = username, password = password, database = "boardgame_info",) as connection:
+    w = WebScraper("https://boardgamegeek.com/browse/boardgame")
+    lst = w.test()
 
-        d = DatabaseHelper(connection)
-        d.populate_bg_ratings_tables()
-    '''
+    try:
+        with connect(host = hst, user = username, password = psw, database = "boardgame_info",) as connection:
+            insert_bgg_ids_query = """
+            UPDATE board_games
+            SET bgg_id = %s
+            WHERE name = %s
+            """
 
-    '''
-    with connect(host = "localhost", user = username, password = password, database = "boardgame_info",) as connection:
-        db_app = DataBaseAppFunctionality(connection)
-        db_app.gather_bg_stats(["Secret Hitler", "Mantis Falls"], 9)
-    '''
+            with connection.cursor() as cursor:
+                cursor.executemany(insert_bgg_ids_query, lst)
+                connection.commit()
+
+    except Error as e:
+        print(e)
