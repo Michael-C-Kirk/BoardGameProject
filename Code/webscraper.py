@@ -8,6 +8,8 @@ import threading
 import time 
 import numpy as np
 import configparser
+import xml.etree.ElementTree as ET
+import re
 
 config = configparser.ConfigParser()
 config.read("..\BoardGameProjectAdditonalFiles\config.ini")
@@ -143,3 +145,41 @@ class WebScraper:
         with futures.ThreadPoolExecutor(max_workers=self.thread_count) as executor:
             executor.map(self._scrape_bgg_ids, chunks, drivers)
         print("--- %s seconds ---" % (time.time() - start_time))  
+
+    def extract_info_from_xml(self, url) -> dict:
+        """
+        Input: string for bgg_xml_api url
+        Output: dict{description: str, 
+                     image: str,
+                     categories: lst,
+                     mechanics: lst
+                    }
+
+        Useful for extracting additional info about board games from bgg_api
+        """
+        self.driver.get(url)
+        root = ET.fromstring(self.driver.page_source)
+        bg_cat, bg_mech = [], [] #categories and mechanics
+        bg_info = {}
+
+        for neighbor in root.iter('link'):
+            if neighbor.attrib.get('type') == "boardgamecategory":
+                bg_cat.append(neighbor.attrib.get('value'))
+            elif neighbor.attrib.get('type') == "boardgamemechanic":
+                bg_mech.append(neighbor.attrib.get('value'))
+
+        for neighbor in root.iter('description'):
+            bg_info["description"] = re.sub(r'[^a-zA-Z.\-,!? ]', '', neighbor.text)
+
+        for neighbor in root.iter('image'):
+            bg_info["image"] = neighbor.text
+
+        bg_info["categories"], bg_info["mechanics"] = bg_cat, bg_mech
+        
+        return bg_info
+
+
+
+if __name__ == "__main__":
+    w = WebScraper("")
+    print(w.extract_info_from_xml("https://boardgamegeek.com/xmlapi2/thing?id=342942"))

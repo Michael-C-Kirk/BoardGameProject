@@ -343,6 +343,7 @@ if __name__ == "__main__":
         print(e)
     '''
 
+    '''
     w = WebScraper("https://boardgamegeek.com/browse/boardgame")
     lst = w.test()
 
@@ -360,3 +361,4 @@ if __name__ == "__main__":
 
     except Error as e:
         print(e)
+    '''

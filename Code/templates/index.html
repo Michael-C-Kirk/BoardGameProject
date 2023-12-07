@@ -49,15 +49,36 @@
             });
         }
     </script>
+
+    <script>
+        function getBGs() {
+            $("#bg_list").empty()
+            var query = document.getElementById('bgInput').value
+            console.log("sending query to backend")
+            $.ajax({
+                method: "post",
+                url: '{{ url_for("home") }}',
+                contentType: 'application/json',
+                accepts: 'application/json',
+                data: JSON.stringify({ bgInput: query }),
+                success: function (res) {
+                    var data = ""
+                    $.each(res['bgs'], function (index, value) {
+                        console.log(value)
+                        data += "<option>" + value + "</option>";
+                    });
+                    $("#bg_list").html(data);
+                }
+            })
+        }
+    </script>
+
 </head>
 
 <body>
     <div id="container">
-        <input type="text" id="bgInput" list="bg_list">
+        <input type="text" name="bgInput" id="bgInput" list="bg_list" oninput="getBGs()">
         <datalist id="bg_list">
-            {% for bg in bg_list %}
-            <option> {{bg}} </option>
-            {% endfor %}
         </datalist>
         <button id="addBgButton" onclick="addBgtoList()">Add Board Game</button>
 

@@ -22,9 +22,15 @@ db = DataBaseAppFunctionality()
 
 @app.route('/', methods=["POST","GET"])
 def home():
-    if request.method == "GET":
-        bg_list = db.get_all_bgs() 
-        return render_template('index.html', bg_list = bg_list)
+    l = [] #list of all MySQL queried bgs
+    if request.method == "POST": #POST called in index.html ajax function
+        query = request.json
+        bgs = db.auto_complete_search(query['bgInput'])
+        for bg in bgs:
+            l.append(bg[0]) #bgs structured like [('bg_name',) ... ]
+        return jsonify({'bgs': l})
+        
+    return render_template('index.html', bg_list = l)
 
 @app.route('/results', methods=["GET", "POST"]) 
 def resultPage():
@@ -46,5 +52,4 @@ def test():
     
 
 if __name__ == "__main__":
-
     app.run(debug=True)
