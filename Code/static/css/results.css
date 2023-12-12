@@ -1,0 +1,41 @@
+.header {
+    padding: 2rem;
+}
+
+.card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    justify-content: center;
+
+}
+
+.card {
+    box-shadow: 0 0 0 1pt grey;
+    padding: .5rem;
+}
+
+.card-title {
+    color: #fffffe;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.card-subtitle {
+    color: #fffffe;
+}
+
+.card-text {
+    color: #abd1c6;
+    padding-top: 1rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    /* number of lines to show */
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+}
+
+.card-button {
+    align-self: flex-end;
+}
