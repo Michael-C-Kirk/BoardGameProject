@@ -146,40 +146,68 @@ class WebScraper:
             executor.map(self._scrape_bgg_ids, chunks, drivers)
         print("--- %s seconds ---" % (time.time() - start_time))  
 
-    def extract_info_from_xml(self, url) -> dict:
+    def _create_xml_urls(self, bgg_ids: list) -> list:
+        urls = []
+
+        for bgg_id in bgg_ids:
+            urls.append("https://boardgamegeek.com/xmlapi2/thing?id={id}".format(id=bgg_id[0]))
+        
+        return urls
+
+    def extract_info_from_xml(self, bgg_ids: list) -> dict:
         """
-        Input: string for bgg_xml_api url
-        Output: dict{description: str, 
+        Input: list of strings that represent bgg ids from database
+        Output: dict{
+                     description: str, 
                      image: str,
                      categories: lst,
                      mechanics: lst
+                     year: str
+                     bgg_id: str
+                     name: str
                     }
 
         Useful for extracting additional info about board games from bgg_api
         """
-        self.driver.get(url)
-        root = ET.fromstring(self.driver.page_source)
-        bg_cat, bg_mech = [], [] #categories and mechanics
-        bg_info = {}
+        xml_urls = self._create_xml_urls(bgg_ids)
+        bg_xml_info = []
 
-        for neighbor in root.iter('link'):
-            if neighbor.attrib.get('type') == "boardgamecategory":
-                bg_cat.append(neighbor.attrib.get('value'))
-            elif neighbor.attrib.get('type') == "boardgamemechanic":
-                bg_mech.append(neighbor.attrib.get('value'))
+        for url in xml_urls:
+            time.sleep(2)
+            self.driver.get(url)
+            root = ET.fromstring(self.driver.page_source)
+            bg_cat, bg_mech = [], [] #categories and mechanics
+            bg_info = {}
 
-        for neighbor in root.iter('description'):
-            bg_info["description"] = re.sub(r'[^a-zA-Z.\-,!? ]', '', neighbor.text)
+            for neighbor in root.iter('link'):
+                if neighbor.attrib.get('type') == "boardgamecategory":
+                    bg_cat.append((neighbor.attrib.get('value'),))
+                elif neighbor.attrib.get('type') == "boardgamemechanic":
+                    bg_mech.append((neighbor.attrib.get('value'),))
 
-        for neighbor in root.iter('image'):
-            bg_info["image"] = neighbor.text
+            for neighbor in root.iter('description'):
+                description = re.sub(r'[^a-zA-Z.\-,!? ]', '', neighbor.text)
+                bg_info["description"] = re.sub(' +', ' ', description)
 
-        bg_info["categories"], bg_info["mechanics"] = bg_cat, bg_mech
-        
-        return bg_info
+            for neighbor in root.iter('image'):
+                bg_info["image"] = neighbor.text
+
+            for neighbor in root.iter('yearpublished'):
+                bg_info["year"] = neighbor.attrib.get('value')
+
+            for neighbor in root.iter('item'):
+                bg_info["bgg_id"] = neighbor.attrib.get('id')
+
+            for neighbor in root.iter('name'):
+                if neighbor.attrib.get("type") == "primary":
+                    bg_info["name"] = neighbor.attrib.get("value")
+
+            bg_info["categories"], bg_info["mechanics"] = bg_cat, bg_mech
+            bg_xml_info.append(bg_info)
+            
+        return bg_xml_info
 
 
 
 if __name__ == "__main__":
-    w = WebScraper("")
-    print(w.extract_info_from_xml("https://boardgamegeek.com/xmlapi2/thing?id=342942"))
+    pass

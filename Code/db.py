@@ -64,6 +64,30 @@ class DatabaseHelper:
         with self.connection.cursor() as cursor:
             cursor.execute(query)
             return cursor.fetchall()[0][0]
+        
+    def _get_mechanic_id(self, mechanic_name):
+        mechanic_name = mechanic_name.replace("\"", "\\\"")
+        query = """
+        SELECT mechanics.id 
+        FROM boardgame_info.mechanics 
+        WHERE mechanics.name = "{mechanic_name}";
+        """.format(mechanic_name=mechanic_name)
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()[0][0]
+        
+    def _get_category_id(self, category_name):
+        category_name = category_name.replace("\"", "\\\"")
+        query = """
+        SELECT categories.id 
+        FROM boardgame_info.categories 
+        WHERE categories.name = "{category_name}";
+        """.format(category_name=category_name)
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()[0][0]
 
     def populate_bg_ratings_tables(self):
         ids_and_usernames = self._get_users_plus_ids()
@@ -99,6 +123,63 @@ class DatabaseHelper:
 
             except BGGItemNotFoundError:
                 print("ERROR: BGGItemNotFoundError for username: {u}".format(u = username))
+
+    def update_bgs_cats_mechs(self, info_dict: dict) -> None:
+        """
+        Input: dict{
+                    description: str, 
+                     image: str,
+                     categories: lst,
+                     mechanics: lst
+                     year: str
+                     bgg_id: str
+                     name: str
+                    }
+        Takes in dict input and inserts this new information to board_games, categories and mechanics MySQL tables
+        """
+        board_games_query, categories_query, mechanics_query, bg_category_query, bg_mechanic_query = """
+            UPDATE board_games
+            SET BgReleaseYear = %s, BgDescription = %s, BgImage = %s WHERE name = %s AND bgg_id = %s
+                                                                """, """
+            INSERT IGNORE INTO categories (name) 
+            VALUES (%s)
+                                                                """, """
+            INSERT IGNORE INTO mechanics (name)
+            VALUES (%s)
+                                                                """, """
+            INSERT IGNORE INTO bg_categories (BgID, CategoryID)
+            VALUES (%s, %s)
+                                                                """, """
+            INSERT IGNORE INTO bg_mechanics (BgID, MechanicID)
+            VALUES (%s, %s)
+                                                                """
+        
+        category_ids, mechanic_ids = [], []
+        bg_id = self._get_bg_id(info_dict["name"])
+
+        try:
+            for mechanic in info_dict["mechanics"]:
+                mechanic_id = self._get_mechanic_id(mechanic[0])
+                mechanic_ids.append((bg_id, mechanic_id))
+
+            for category in info_dict["categories"]:
+                category_id = self._get_category_id(category[0])
+                category_ids.append((bg_id, category_id))
+        
+            with self.connection.cursor() as cursor:
+                cursor.execute(board_games_query, (info_dict["year"], info_dict["description"], info_dict["image"], info_dict["name"], info_dict["bgg_id"]))
+                cursor.executemany(categories_query, info_dict["categories"])
+                cursor.executemany(mechanics_query, info_dict["mechanics"])
+                cursor.executemany(bg_category_query, category_ids)
+                cursor.executemany(bg_mechanic_query, mechanic_ids)
+                self.connection.commit()
+
+        except KeyError as e:
+            print("Key not found in dictionary error:", e)
+
+        except:
+            pass
+
 
 class DataBaseAppFunctionality:
     cnx = None
@@ -313,7 +394,30 @@ class DataBaseAppFunctionality:
             cursor.execute(auto_complete_query)
             return cursor.fetchall()
 
+    def get_bgg_ids(self):
+        query = """
+                SELECT bgg_id FROM boardgame_info.board_games WHERE bgg_id is not NULL and bgg_id BETWEEN 0 AND 5;
+                """
+        
+        if not DataBaseAppFunctionality.cnx.is_connected():
+            DataBaseAppFunctionality.cnx.reconnect()
+
+        with DataBaseAppFunctionality.cnx.cursor() as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()
+
 if __name__ == "__main__":
+    scraper = WebScraper("")
+    db = DataBaseAppFunctionality()
+    bgg_ids = db.get_bgg_ids()
+
+    with connect(host = hst, user = username, password = psw, database = "boardgame_info",) as connection:
+        db_helper = DatabaseHelper(connection)
+        for bg_dict in scraper.extract_info_from_xml(bgg_ids):
+            print(bg_dict)
+            db_helper.update_bgs_cats_mechs(bg_dict)
+
+
     """
     config is used to store/retrieve Database username and password
     helpful for keeping sensitive information away from github 
