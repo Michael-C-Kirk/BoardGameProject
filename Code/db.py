@@ -105,7 +105,6 @@ class DatabaseHelper:
                         Not doing anything in this instance since we just want to ignore and continue on
                         """
                         pass
-                    print(user_id, username, game.name, game.rating)
 
                     bg_id = self._get_bg_id(game.name)
                     try:
@@ -155,9 +154,10 @@ class DatabaseHelper:
                                                                 """
         
         category_ids, mechanic_ids = [], []
-        bg_id = self._get_bg_id(info_dict["name"])
 
         try:
+            bg_id = self._get_bg_id(info_dict["name"])
+
             for mechanic in info_dict["mechanics"]:
                 mechanic_id = self._get_mechanic_id(mechanic[0])
                 mechanic_ids.append((bg_id, mechanic_id))
@@ -313,6 +313,7 @@ class DataBaseAppFunctionality:
                     bg_stats_dict[bg_name] += 1
                 c += 1
 
+            print(bg_stats_dict)
             return (sorted(bg_stats_dict.items(), key=lambda item: item[1]))
         
         else:
@@ -396,7 +397,7 @@ class DataBaseAppFunctionality:
 
     def get_bgg_ids(self):
         query = """
-                SELECT bgg_id FROM boardgame_info.board_games WHERE bgg_id is not NULL and bgg_id BETWEEN 0 AND 5;
+                SELECT bgg_id FROM boardgame_info.board_games WHERE bgg_id is not NULL and bgg_id BETWEEN 35194 AND 35200;
                 """
         
         if not DataBaseAppFunctionality.cnx.is_connected():
@@ -414,7 +415,6 @@ if __name__ == "__main__":
     with connect(host = hst, user = username, password = psw, database = "boardgame_info",) as connection:
         db_helper = DatabaseHelper(connection)
         for bg_dict in scraper.extract_info_from_xml(bgg_ids):
-            print(bg_dict)
             db_helper.update_bgs_cats_mechs(bg_dict)
 
 

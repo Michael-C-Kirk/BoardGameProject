@@ -32,8 +32,8 @@ def home():
         
     return render_template('index.html', bg_list = l)
 
-@app.route('/results', methods=["GET", "POST"]) 
-def resultPage():
+@app.route('/getJSData', methods=["GET", "POST"]) 
+def getJSData():
     jsdata = None
     if request.method == "POST":
         jsdata = request.json
@@ -43,8 +43,8 @@ def resultPage():
         db.create_temp_table("temp_table", res)
         return jsonify({'html':render_template('results.html', d=res)})
 
-@app.route('/test', methods=["GET", "POST"])
-def test():
+@app.route('/results', methods=["GET", "POST"])
+def resultPage():
     if request.method == "GET":
         bg_info = db.get_temp_table_vals("temp_table")
         print(bg_info)

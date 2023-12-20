@@ -36,7 +36,7 @@
             console.log(JSON.stringify(bgs));
             //$.post("/results", { javascript_data: JSON.stringify(bgs) });
             $.ajax({
-                url: "{{ url_for('resultPage') }}",
+                url: "{{ url_for('getJSData') }}",
                 type: "POST",
                 dataType: 'json',
                 contentType: 'application/json',
@@ -44,7 +44,7 @@
                 data: JSON.stringify(bgs),
                 success: function (data) {
                     console.log("processing data")
-                    window.location = '/test'
+                    window.location = '/results'
                 }
             });
         }

@@ -179,6 +179,10 @@ class WebScraper:
             bg_cat, bg_mech = [], [] #categories and mechanics
             bg_info = {}
 
+            """
+            All these for loops with neighbors are collecting specific information
+            from the XML bgg api urls and attatching them to dict bg_info
+            """
             for neighbor in root.iter('link'):
                 if neighbor.attrib.get('type') == "boardgamecategory":
                     bg_cat.append((neighbor.attrib.get('value'),))
