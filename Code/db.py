@@ -397,7 +397,7 @@ class DataBaseAppFunctionality:
 
     def get_bgg_ids(self):
         query = """
-                SELECT bgg_id FROM boardgame_info.board_games WHERE bgg_id is not NULL and bgg_id BETWEEN 100000 AND 150000;
+                SELECT bgg_id FROM boardgame_info.board_games WHERE bgg_id is not NULL and bgg_id BETWEEN 134103 AND 134117;
                 """
         
         if not DataBaseAppFunctionality.cnx.is_connected():
