@@ -171,43 +171,49 @@ class WebScraper:
         """
         xml_urls = self._create_xml_urls(bgg_ids)
         bg_xml_info = []
+        
+        try:
+            for url in xml_urls:
+                time.sleep(2)
+                self.driver.get(url)
+                root = ET.fromstring(self.driver.page_source)
+                bg_cat, bg_mech = [], [] #categories and mechanics
+                bg_info = {}
 
-        for url in xml_urls:
-            time.sleep(2)
-            self.driver.get(url)
-            root = ET.fromstring(self.driver.page_source)
-            bg_cat, bg_mech = [], [] #categories and mechanics
-            bg_info = {}
+                """
+                All these for loops with neighbors are collecting specific information
+                from the XML bgg api urls and attatching them to dict bg_info
+                """
+                for neighbor in root.iter('link'):
+                    if neighbor.attrib.get('type') == "boardgamecategory":
+                        bg_cat.append((neighbor.attrib.get('value'),))
+                    elif neighbor.attrib.get('type') == "boardgamemechanic":
+                        bg_mech.append((neighbor.attrib.get('value'),))
 
-            """
-            All these for loops with neighbors are collecting specific information
-            from the XML bgg api urls and attatching them to dict bg_info
-            """
-            for neighbor in root.iter('link'):
-                if neighbor.attrib.get('type') == "boardgamecategory":
-                    bg_cat.append((neighbor.attrib.get('value'),))
-                elif neighbor.attrib.get('type') == "boardgamemechanic":
-                    bg_mech.append((neighbor.attrib.get('value'),))
+                for neighbor in root.iter('description'):
+                    description = re.sub(r'[^a-zA-Z.\-,!? ]', '', neighbor.text)
+                    bg_info["description"] = re.sub(' +', ' ', description)
 
-            for neighbor in root.iter('description'):
-                description = re.sub(r'[^a-zA-Z.\-,!? ]', '', neighbor.text)
-                bg_info["description"] = re.sub(' +', ' ', description)
+                for neighbor in root.iter('image'):
+                    bg_info["image"] = neighbor.text
 
-            for neighbor in root.iter('image'):
-                bg_info["image"] = neighbor.text
+                for neighbor in root.iter('yearpublished'):
+                    bg_info["year"] = neighbor.attrib.get('value')
 
-            for neighbor in root.iter('yearpublished'):
-                bg_info["year"] = neighbor.attrib.get('value')
+                for neighbor in root.iter('item'):
+                    bg_info["bgg_id"] = neighbor.attrib.get('id')
 
-            for neighbor in root.iter('item'):
-                bg_info["bgg_id"] = neighbor.attrib.get('id')
+                for neighbor in root.iter('name'):
+                    if neighbor.attrib.get("type") == "primary":
+                        bg_info["name"] = neighbor.attrib.get("value")
 
-            for neighbor in root.iter('name'):
-                if neighbor.attrib.get("type") == "primary":
-                    bg_info["name"] = neighbor.attrib.get("value")
-
-            bg_info["categories"], bg_info["mechanics"] = bg_cat, bg_mech
-            bg_xml_info.append(bg_info)
+                bg_info["categories"], bg_info["mechanics"] = bg_cat, bg_mech
+                bg_xml_info.append(bg_info)
+        
+        except TypeError as e:
+            print("Type error, retrieving xml elements may have returned NoneType ERROR:", e)
+        except:
+            pass
             
         return bg_xml_info
 
